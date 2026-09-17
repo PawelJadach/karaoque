@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { songStatusValidator } from "./lib/validators";
 
 export default defineSchema({
   lists: defineTable({
@@ -12,6 +13,7 @@ export default defineSchema({
   songs: defineTable({
     listId: v.id("lists"),
     title: v.string(),
-    done: v.boolean(),
+    done: v.optional(v.boolean()),
+    status: v.optional(songStatusValidator),
   }).index("by_list", ["listId"]),
 });

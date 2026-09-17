@@ -1,9 +1,19 @@
 import { v } from "convex/values";
 
+export const SONG_STATUSES = ["todo", "next", "now", "done"] as const;
+export type SongStatus = (typeof SONG_STATUSES)[number];
+
+export const songStatusValidator = v.union(
+  v.literal("todo"),
+  v.literal("next"),
+  v.literal("now"),
+  v.literal("done"),
+);
+
 export const songValidator = v.object({
   _id: v.id("songs"),
   title: v.string(),
-  done: v.boolean(),
+  status: songStatusValidator,
 });
 
 export const listPageValidator = v.union(

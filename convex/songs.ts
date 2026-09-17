@@ -2,7 +2,12 @@ import { v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { ErrorCode } from "./lib/errors";
 import { requireListAccess } from "./lib/access";
-import { MAX_SONGS_PER_LIST, MAX_TITLE_LENGTH } from "./lib/validators";
+import { applySongStatus } from "./lib/songStatus";
+import {
+  MAX_SONGS_PER_LIST,
+  MAX_TITLE_LENGTH,
+  songStatusValidator,
+} from "./lib/validators";
 
 export const add = mutation({
   args: {
@@ -32,6 +37,7 @@ export const add = mutation({
     return await ctx.db.insert("songs", {
       listId: list._id,
       title,
+      status: "todo",
       done: false,
     });
   },
@@ -65,12 +71,12 @@ export const update = mutation({
   },
 });
 
-export const setDone = mutation({
+export const setStatus = mutation({
   args: {
     slug: v.string(),
     password: v.optional(v.string()),
     songId: v.id("songs"),
-    done: v.boolean(),
+    status: songStatusValidator,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -80,7 +86,13 @@ export const setDone = mutation({
       throw new Error(ErrorCode.SONG_NOT_FOUND);
     }
 
-    await ctx.db.patch("songs", args.songId, { done: args.done });
+    await applySongStatus(
+      ctx,
+      list._id,
+      song,
+      args.status,
+      MAX_SONGS_PER_LIST,
+    );
     return null;
   },
 });

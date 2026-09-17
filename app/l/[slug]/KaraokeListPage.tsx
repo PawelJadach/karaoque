@@ -3,7 +3,7 @@
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Check, ClipboardPaste, Copy, Lock, Mic2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, ClipboardPaste, Copy, Lock, Mic2, Pencil, Plus, SkipForward, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { type ClipboardEvent as ReactClipboardEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LanguageSwitch } from "../../../components/LanguageSwitch";
@@ -17,18 +17,39 @@ import {
   loadListPassword,
   saveListPassword,
 } from "../../../lib/listPassword";
-import { MAX_TITLE_LENGTH } from "../../../convex/lib/validators";
+import { MAX_TITLE_LENGTH, type SongStatus } from "../../../convex/lib/validators";
 
 type Song = {
   _id: Id<"songs">;
   title: string;
-  done: boolean;
+  status: SongStatus;
 };
 
 type Access = {
   slug: string;
   password?: string;
 };
+
+function listSummary(songs: Song[], t: Translations): string {
+  const now = songs.filter((song) => song.status === "now").length;
+  const next = songs.filter((song) => song.status === "next").length;
+  const todo = songs.filter((song) => song.status === "todo").length;
+  const done = songs.filter((song) => song.status === "done").length;
+  const parts: string[] = [];
+  if (now > 0) {
+    parts.push(`${now} ${t.nowLabel}`);
+  }
+  if (next > 0) {
+    parts.push(`${next} ${t.nextLabel}`);
+  }
+  if (todo > 0 || parts.length === 0) {
+    parts.push(`${todo} ${t.toSing}`);
+  }
+  if (done > 0) {
+    parts.push(`${done} ${t.done}`);
+  }
+  return parts.join(" · ");
+}
 
 function songsFromClipboard(raw: string): string[] {
   const titles: string[] = [];
@@ -181,8 +202,10 @@ export function KaraokeListPage({ slug }: { slug: string }) {
     );
   }
 
-  const todo = page.songs.filter((song) => !song.done);
-  const done = page.songs.filter((song) => song.done);
+  const now = page.songs.filter((song) => song.status === "now");
+  const next = page.songs.filter((song) => song.status === "next");
+  const todo = page.songs.filter((song) => song.status === "todo");
+  const done = page.songs.filter((song) => song.status === "done");
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-4">
@@ -232,10 +255,7 @@ export function KaraokeListPage({ slug }: { slug: string }) {
         <h1 className="truncate text-2xl font-bold leading-tight">
           {page.name}
         </h1>
-        <p className="text-sm text-muted">
-          {todo.length} {t.toSing}
-          {done.length > 0 ? ` · ${done.length} ${t.done}` : ""}
-        </p>
+        <p className="text-sm text-muted">{listSummary(page.songs, t)}</p>
       </header>
 
       {actionError ? (
@@ -251,13 +271,35 @@ export function KaraokeListPage({ slug }: { slug: string }) {
         </div>
       ) : (
         <div className="space-y-6">
-          <SongGroup
-            title={t.todoTitle}
-            empty={t.todoEmpty}
-            songs={todo}
-            access={access}
-            onError={setActionError}
-          />
+          {now.length > 0 ? (
+            <SongGroup
+              title={t.nowTitle}
+              empty=""
+              accent="now"
+              songs={now}
+              access={access}
+              onError={setActionError}
+            />
+          ) : null}
+          {next.length > 0 ? (
+            <SongGroup
+              title={t.nextTitle}
+              empty=""
+              accent="next"
+              songs={next}
+              access={access}
+              onError={setActionError}
+            />
+          ) : null}
+          {todo.length > 0 ? (
+            <SongGroup
+              title={t.todoTitle}
+              empty={t.todoEmpty}
+              songs={todo}
+              access={access}
+              onError={setActionError}
+            />
+          ) : null}
           {done.length > 0 ? (
             <SongGroup
               title={t.doneTitle}
@@ -368,19 +410,30 @@ function ScreenShell({ children }: { children: React.ReactNode }) {
 function SongGroup({
   title,
   empty,
+  accent,
   songs,
   access,
   onError,
 }: {
   title: string;
   empty: string;
+  accent?: "now" | "next";
   songs: Song[];
   access: Access;
   onError: (message: string | null) => void;
 }) {
+  const titleClass =
+    accent === "now"
+      ? "text-pink"
+      : accent === "next"
+        ? "text-gold"
+        : "text-muted";
+
   return (
     <section>
-      <h2 className="mb-3 px-1 text-sm font-semibold uppercase tracking-[0.16em] text-muted">
+      <h2
+        className={`mb-3 px-1 text-sm font-semibold uppercase tracking-[0.16em] ${titleClass}`}
+      >
         {title}
       </h2>
       {songs.length === 0 ? (
@@ -412,7 +465,7 @@ function SongRow({
 }) {
   const { t } = useI18n();
   const updateSong = useMutation(api.songs.update);
-  const setSongDone = useMutation(api.songs.setDone);
+  const setSongStatus = useMutation(api.songs.setStatus);
   const removeSong = useMutation(api.songs.remove);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(song.title);
@@ -438,36 +491,62 @@ function SongRow({
     }
   }
 
+  async function changeStatus(next: SongStatus) {
+    const status = song.status === next ? "todo" : next;
+    setBusy(true);
+    onError(null);
+    try {
+      await setSongStatus({
+        ...access,
+        songId: song._id,
+        status,
+      });
+    } catch (caught) {
+      onError(translateError(caught, t, "UPDATE_FAILED"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const rowClass =
+    song.status === "now"
+      ? "rounded-2xl border border-pink/70 bg-pink/15 px-2 py-2 shadow-[0_0_24px_rgba(255,77,141,0.18)]"
+      : song.status === "next"
+        ? "rounded-2xl border border-gold/45 bg-gold/10 px-2 py-2"
+        : "rounded-2xl border border-line bg-card px-2 py-2";
+
   return (
-    <li className="rounded-2xl border border-line bg-card px-2 py-2">
+    <li className={rowClass}>
       <div className="flex items-center gap-1">
-        <button
-          type="button"
-          aria-label={song.done ? t.markTodo : t.markDone}
-          disabled={busy}
-          onClick={() => {
-            void (async () => {
-              setBusy(true);
-              onError(null);
-              try {
-                await setSongDone({
-                  ...access,
-                  songId: song._id,
-                  done: !song.done,
-                });
-              } catch (caught) {
-                onError(translateError(caught, t, "UPDATE_FAILED"));
-              } finally {
-                setBusy(false);
-              }
-            })();
-          }}
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-            song.done ? "bg-gold/20 text-gold" : "border border-line text-muted"
-          }`}
-        >
-          <Check className="h-5 w-5" />
-        </button>
+        <div className="flex shrink-0 items-center rounded-xl border border-line/80 bg-black/20 p-0.5">
+          <StatusButton
+            label={song.status === "now" ? t.markTodo : t.markNow}
+            active={song.status === "now"}
+            activeClass="bg-pink/25 text-pink"
+            disabled={busy}
+            onClick={() => void changeStatus("now")}
+          >
+            <Mic2 className="h-4 w-4" />
+          </StatusButton>
+          <StatusButton
+            label={song.status === "next" ? t.markTodo : t.markNext}
+            active={song.status === "next"}
+            activeClass="bg-gold/25 text-gold"
+            disabled={busy}
+            onClick={() => void changeStatus("next")}
+          >
+            <SkipForward className="h-4 w-4" />
+          </StatusButton>
+          <StatusButton
+            label={song.status === "done" ? t.markTodo : t.markDone}
+            active={song.status === "done"}
+            activeClass="bg-gold/20 text-gold"
+            disabled={busy}
+            onClick={() => void changeStatus("done")}
+          >
+            <Check className="h-4 w-4" />
+          </StatusButton>
+        </div>
 
         {editing ? (
           <form
@@ -488,7 +567,7 @@ function SongRow({
         ) : (
           <p
             className={`min-w-0 flex-1 px-2 text-base leading-5 ${
-              song.done ? "text-muted line-through" : ""
+              song.status === "done" ? "text-muted line-through" : ""
             }`}
           >
             {song.title}
@@ -558,6 +637,37 @@ function SongRow({
         )}
       </div>
     </li>
+  );
+}
+
+function StatusButton({
+  children,
+  label,
+  active,
+  activeClass,
+  onClick,
+  disabled,
+}: {
+  children: React.ReactNode;
+  label: string;
+  active: boolean;
+  activeClass: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={active}
+      disabled={disabled}
+      onClick={onClick}
+      className={`flex h-11 w-10 shrink-0 items-center justify-center rounded-lg disabled:opacity-50 ${
+        active ? activeClass : "text-muted"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 

@@ -11,6 +11,7 @@
 import type * as lib_access from "../lib/access.js";
 import type * as lib_errors from "../lib/errors.js";
 import type * as lib_password from "../lib/password.js";
+import type * as lib_songStatus from "../lib/songStatus.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as lists from "../lists.js";
 import type * as songs from "../songs.js";
@@ -25,6 +26,7 @@ declare const fullApi: ApiFromModules<{
   "lib/access": typeof lib_access;
   "lib/errors": typeof lib_errors;
   "lib/password": typeof lib_password;
+  "lib/songStatus": typeof lib_songStatus;
   "lib/validators": typeof lib_validators;
   lists: typeof lists;
   songs: typeof songs;

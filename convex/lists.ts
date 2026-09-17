@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { generateSlug, getListBySlug, listPasswordOk } from "./lib/access";
 import { ErrorCode } from "./lib/errors";
 import { hashPassword } from "./lib/password";
+import { resolveSongStatus } from "./lib/songStatus";
 import {
   listPageValidator,
   MAX_NAME_LENGTH,
@@ -42,7 +43,7 @@ export const getPage = query({
       songs: songs.map((song) => ({
         _id: song._id,
         title: song.title,
-        done: song.done,
+        status: resolveSongStatus(song),
       })),
     };
   },
