@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
+import { ErrorCode } from "./lib/errors";
 import { requireListAccess } from "./lib/access";
 import { MAX_SONGS_PER_LIST, MAX_TITLE_LENGTH } from "./lib/validators";
 
@@ -14,10 +15,10 @@ export const add = mutation({
     const list = await requireListAccess(ctx, args.slug, args.password);
     const title = args.title.trim();
     if (title.length < 1) {
-      throw new Error("Podaj nazwę piosenki");
+      throw new Error(ErrorCode.SONG_TITLE_REQUIRED);
     }
     if (title.length > MAX_TITLE_LENGTH) {
-      throw new Error("Nazwa piosenki jest za długa");
+      throw new Error(ErrorCode.SONG_TITLE_TOO_LONG);
     }
 
     const existing = await ctx.db
@@ -25,7 +26,7 @@ export const add = mutation({
       .withIndex("by_list", (q) => q.eq("listId", list._id))
       .take(MAX_SONGS_PER_LIST);
     if (existing.length >= MAX_SONGS_PER_LIST) {
-      throw new Error("Lista jest pełna");
+      throw new Error(ErrorCode.LIST_FULL);
     }
 
     return await ctx.db.insert("songs", {
@@ -48,15 +49,15 @@ export const update = mutation({
     const list = await requireListAccess(ctx, args.slug, args.password);
     const song = await ctx.db.get("songs", args.songId);
     if (!song || song.listId !== list._id) {
-      throw new Error("Piosenka nie istnieje");
+      throw new Error(ErrorCode.SONG_NOT_FOUND);
     }
 
     const title = args.title.trim();
     if (title.length < 1) {
-      throw new Error("Podaj nazwę piosenki");
+      throw new Error(ErrorCode.SONG_TITLE_REQUIRED);
     }
     if (title.length > MAX_TITLE_LENGTH) {
-      throw new Error("Nazwa piosenki jest za długa");
+      throw new Error(ErrorCode.SONG_TITLE_TOO_LONG);
     }
 
     await ctx.db.patch("songs", args.songId, { title });
@@ -76,7 +77,7 @@ export const setDone = mutation({
     const list = await requireListAccess(ctx, args.slug, args.password);
     const song = await ctx.db.get("songs", args.songId);
     if (!song || song.listId !== list._id) {
-      throw new Error("Piosenka nie istnieje");
+      throw new Error(ErrorCode.SONG_NOT_FOUND);
     }
 
     await ctx.db.patch("songs", args.songId, { done: args.done });
@@ -95,7 +96,7 @@ export const remove = mutation({
     const list = await requireListAccess(ctx, args.slug, args.password);
     const song = await ctx.db.get("songs", args.songId);
     if (!song || song.listId !== list._id) {
-      throw new Error("Piosenka nie istnieje");
+      throw new Error(ErrorCode.SONG_NOT_FOUND);
     }
 
     await ctx.db.delete("songs", args.songId);

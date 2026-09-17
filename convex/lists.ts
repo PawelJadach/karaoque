@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { generateSlug, getListBySlug, listPasswordOk } from "./lib/access";
+import { ErrorCode } from "./lib/errors";
 import { hashPassword } from "./lib/password";
 import {
   listPageValidator,
@@ -58,15 +59,15 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const name = args.name.trim();
     if (name.length < 1) {
-      throw new Error("Podaj nazwę wyjścia");
+      throw new Error(ErrorCode.NAME_REQUIRED);
     }
     if (name.length > MAX_NAME_LENGTH) {
-      throw new Error(`Nazwa może mieć max. ${MAX_NAME_LENGTH} znaków`);
+      throw new Error(ErrorCode.NAME_TOO_LONG);
     }
 
     const password = args.password?.trim() || undefined;
     if (password && password.length > MAX_PASSWORD_LENGTH) {
-      throw new Error(`Hasło może mieć max. ${MAX_PASSWORD_LENGTH} znaków`);
+      throw new Error(ErrorCode.PASSWORD_TOO_LONG);
     }
 
     let slug = generateSlug();

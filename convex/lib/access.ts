@@ -1,6 +1,7 @@
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { verifyPassword } from "./password";
+import { ErrorCode } from "./errors";
 
 type DbCtx = QueryCtx | MutationCtx;
 
@@ -34,11 +35,11 @@ export async function requireListAccess(
 ): Promise<Doc<"lists">> {
   const list = await getListBySlug(ctx, slug);
   if (!list) {
-    throw new Error("Lista nie istnieje");
+    throw new Error(ErrorCode.LIST_NOT_FOUND);
   }
   const allowed = await listPasswordOk(list, password);
   if (!allowed) {
-    throw new Error("Nieprawidłowe hasło");
+    throw new Error(ErrorCode.INVALID_PASSWORD);
   }
   return list;
 }

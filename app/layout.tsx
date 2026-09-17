@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import { ConvexClientProvider } from "./ConvexClientProvider";
+import { LanguageSwitch } from "../components/LanguageSwitch";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -28,7 +29,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pl" className={`${outfit.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <ConvexClientProvider>
+          <div className="flex justify-end px-3 pt-3">
+            <LanguageSwitch />
+          </div>
+          {children}
+        </ConvexClientProvider>
       </body>
     </html>
   );

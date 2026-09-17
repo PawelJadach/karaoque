@@ -1,0 +1,186 @@
+import { useCallback, useSyncExternalStore } from "react";
+
+export type Lang = "pl" | "en";
+
+const LANG_KEY = "karaoque:lang";
+const LANG_EVENT = "karaoque-lang";
+
+const translations = {
+  pl: {
+    homeTagline:
+      "Wspólna lista piosenek na karaoke. Stwórz stronę, wyślij link znajomym — bez rejestracji.",
+    name: "Nazwa",
+    namePlaceholder: "np. Urodziny Asi",
+    passwordOptional: "Hasło (opcjonalne)",
+    passwordPlaceholder: "Zostaw puste, jeśli nie potrzeba",
+    passwordHint:
+      "Hasło nie jest wymagane. Jeśli je ustawisz, wyślij je osobno razem z linkiem.",
+    createList: "Stwórz listę",
+    creatingList: "Tworzę listę...",
+    loadingList: "Ładuję listę...",
+    missingTitle: "Nie ma takiej listy",
+    missingBody: "Link jest niepoprawny albo lista została usunięta.",
+    createNewList: "Stwórz nową listę",
+    lockedBody:
+      "Ta lista jest chroniona hasłem. Wpisz je, żeby dodawać i edytować piosenki.",
+    password: "Hasło",
+    enter: "Wejdź",
+    home: "Strona główna",
+    copyLink: "Kopiuj link",
+    share: "Udostępnij",
+    linkCopied: "Link skopiowany",
+    copyFromBar: "Skopiuj link z paska przeglądarki",
+    passwordCopied: "Hasło skopiowane",
+    toSing: "do zaśpiewania",
+    done: "gotowe",
+    passwordBanner: "Hasło do tej listy — wyślij je znajomym razem z linkiem.",
+    copyPassword: "Kopiuj hasło",
+    emptyTitle: "Jeszcze pusto",
+    emptyBody: "Dodaj pierwszą piosenkę na dole.",
+    todoTitle: "Do zaśpiewania",
+    todoEmpty: "Wszystko już zaśpiewane.",
+    doneTitle: "Zaśpiewane",
+    addSong: "Dodaj piosenkę...",
+    addSongAria: "Dodaj piosenkę",
+    markDone: "Oznacz jako zaśpiewaną",
+    markTodo: "Oznacz jako niezaśpiewaną",
+    save: "Zapisz",
+    cancel: "Anuluj",
+    delete: "Usuń",
+    edit: "Edytuj",
+    language: "Język",
+    errors: {
+      NAME_REQUIRED: "Podaj nazwę",
+      NAME_TOO_LONG: "Nazwa może mieć max. 80 znaków",
+      PASSWORD_TOO_LONG: "Hasło może mieć max. 64 znaki",
+      LIST_NOT_FOUND: "Lista nie istnieje",
+      INVALID_PASSWORD: "Nieprawidłowe hasło",
+      SONG_TITLE_REQUIRED: "Podaj nazwę piosenki",
+      SONG_TITLE_TOO_LONG: "Nazwa piosenki jest za długa",
+      LIST_FULL: "Lista jest pełna",
+      SONG_NOT_FOUND: "Piosenka nie istnieje",
+      GENERIC: "Coś poszło nie tak",
+      CREATE_FAILED: "Nie udało się utworzyć listy",
+      ADD_FAILED: "Nie udało się dodać piosenki",
+      SAVE_FAILED: "Nie udało się zapisać",
+      UPDATE_FAILED: "Nie udało się zaktualizować",
+      DELETE_FAILED: "Nie udało się usunąć",
+    },
+  },
+  en: {
+    homeTagline:
+      "A shared karaoke song list. Create a page, send the link to friends — no sign-up.",
+    name: "Name",
+    namePlaceholder: "e.g. Asia's birthday",
+    passwordOptional: "Password (optional)",
+    passwordPlaceholder: "Leave empty if you don't need one",
+    passwordHint:
+      "A password is optional. If you set one, send it separately along with the link.",
+    createList: "Create list",
+    creatingList: "Creating list...",
+    loadingList: "Loading list...",
+    missingTitle: "This list doesn't exist",
+    missingBody: "The link is wrong or the list was deleted.",
+    createNewList: "Create a new list",
+    lockedBody:
+      "This list is password protected. Enter it to add and edit songs.",
+    password: "Password",
+    enter: "Enter",
+    home: "Home",
+    copyLink: "Copy link",
+    share: "Share",
+    linkCopied: "Link copied",
+    copyFromBar: "Copy the link from the address bar",
+    passwordCopied: "Password copied",
+    toSing: "to sing",
+    done: "done",
+    passwordBanner: "Password for this list — send it to friends with the link.",
+    copyPassword: "Copy password",
+    emptyTitle: "Nothing here yet",
+    emptyBody: "Add the first song below.",
+    todoTitle: "To sing",
+    todoEmpty: "Everything has been sung.",
+    doneTitle: "Sung",
+    addSong: "Add a song...",
+    addSongAria: "Add song",
+    markDone: "Mark as sung",
+    markTodo: "Mark as not sung",
+    save: "Save",
+    cancel: "Cancel",
+    delete: "Delete",
+    edit: "Edit",
+    language: "Language",
+    errors: {
+      NAME_REQUIRED: "Enter a name",
+      NAME_TOO_LONG: "Name can be at most 80 characters",
+      PASSWORD_TOO_LONG: "Password can be at most 64 characters",
+      LIST_NOT_FOUND: "List not found",
+      INVALID_PASSWORD: "Wrong password",
+      SONG_TITLE_REQUIRED: "Enter a song name",
+      SONG_TITLE_TOO_LONG: "Song name is too long",
+      LIST_FULL: "This list is full",
+      SONG_NOT_FOUND: "Song not found",
+      GENERIC: "Something went wrong",
+      CREATE_FAILED: "Couldn't create the list",
+      ADD_FAILED: "Couldn't add the song",
+      SAVE_FAILED: "Couldn't save",
+      UPDATE_FAILED: "Couldn't update",
+      DELETE_FAILED: "Couldn't delete",
+    },
+  },
+} as const;
+
+export type Translations = (typeof translations)[Lang];
+export type ErrorCode = keyof Translations["errors"];
+
+function subscribeNever(): () => void {
+  return () => undefined;
+}
+
+function readLang(): Lang {
+  try {
+    return window.localStorage.getItem(LANG_KEY) === "en" ? "en" : "pl";
+  } catch {
+    return "pl";
+  }
+}
+
+function subscribeLang(onChange: () => void): () => void {
+  window.addEventListener(LANG_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(LANG_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+export function useIsClient(): boolean {
+  return useSyncExternalStore(subscribeNever, () => true, () => false);
+}
+
+export function useI18n() {
+  const lang = useSyncExternalStore<Lang>(subscribeLang, readLang, () => "pl");
+  const setLang = useCallback((next: Lang) => {
+    window.localStorage.setItem(LANG_KEY, next);
+    window.dispatchEvent(new Event(LANG_EVENT));
+    document.documentElement.lang = next;
+  }, []);
+
+  return {
+    lang,
+    setLang,
+    t: translations[lang],
+  };
+}
+
+export function translateError(
+  error: unknown,
+  t: Translations,
+  fallback: ErrorCode,
+): string {
+  const message = error instanceof Error ? error.message : "";
+  if (message && message in t.errors) {
+    return t.errors[message as ErrorCode];
+  }
+  return t.errors[fallback];
+}
