@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "convex": "^1.46.0",
     "convex-helpers": "^0.1.124",
     "lucide-react": "^1.47.0",
