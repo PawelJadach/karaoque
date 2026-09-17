@@ -5,7 +5,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { Check, Copy, Lock, Mic2, Pencil, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { LanguageSwitch } from "../../../components/LanguageSwitch";
 import {
   translateError,
@@ -39,6 +39,7 @@ export function KaraokeListPage({ slug }: { slug: string }) {
   const password = passwordOverride ?? storedPassword;
   const [passwordDraft, setPasswordDraft] = useState("");
   const [emptyPasswordSubmit, setEmptyPasswordSubmit] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -159,28 +160,30 @@ export function KaraokeListPage({ slug }: { slug: string }) {
           <Copy className="h-5 w-5" />
         </button>
         {page.hasPassword && password ? (
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-line px-3 py-1.5">
-            <Lock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-            <p className="min-w-0 flex-1 break-all font-mono text-sm text-gold">
-              {password}
-            </p>
-            <button
-              type="button"
-              onClick={() => void copyPassword()}
-              aria-label={t.copyPassword}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted"
-            >
-              <Copy className="h-4 w-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="min-w-0 flex-1" />
-        )}
+          <button
+            type="button"
+            onClick={() => setShowPassword(true)}
+            aria-label={t.showPassword}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-line"
+          >
+            <Lock className="h-5 w-5" />
+          </button>
+        ) : null}
+        <div className="min-w-0 flex-1" />
         <LanguageSwitch />
       </nav>
 
+      {showPassword && password ? (
+        <PasswordModal
+          password={password}
+          t={t}
+          onCopy={() => void copyPassword()}
+          onClose={() => setShowPassword(false)}
+        />
+      ) : null}
+
       {toast ? (
-        <p className="mb-4 rounded-2xl bg-gold/15 px-4 py-3 text-sm text-gold">
+        <p className="fixed left-1/2 top-4 z-[60] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-2xl bg-gold/90 px-4 py-3 text-center text-sm font-medium text-background">
           {toast}
         </p>
       ) : null}
@@ -243,6 +246,73 @@ export function KaraokeListPage({ slug }: { slug: string }) {
         }}
       />
     </main>
+  );
+}
+
+function PasswordModal({
+  password,
+  t,
+  onCopy,
+  onClose,
+}: {
+  password: string;
+  t: Translations;
+  onCopy: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+      <button
+        type="button"
+        aria-label={t.close}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/60"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="password-modal-title"
+        className="relative z-10 w-full max-w-sm rounded-3xl border border-line bg-card p-5"
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="password-modal-title" className="text-lg font-semibold">
+            {t.password}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t.close}
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-line"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <p className="break-all rounded-2xl border border-line px-4 py-3 font-mono text-lg text-gold">
+          {password}
+        </p>
+        <p className="mt-3 text-sm text-muted">{t.passwordModalHint}</p>
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={onCopy}
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gold px-4 py-3 font-semibold text-background"
+          >
+            <Copy className="h-4 w-4" />
+            {t.copyPassword}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
