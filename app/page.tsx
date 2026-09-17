@@ -81,6 +81,8 @@ export default function HomePage() {
 
       <AccountAndRecentLists recentItems={recentItems} />
 
+      <GoogleSignInBanner />
+
       <form
         onSubmit={onSubmit}
         className="rounded-3xl border border-line bg-card p-5 shadow-2xl backdrop-blur-md sm:p-6"
@@ -130,8 +132,6 @@ export default function HomePage() {
           {busy ? t.creatingList : t.createList}
         </button>
       </form>
-
-      <GoogleSignInBanner />
     </main>
   );
 }
@@ -148,14 +148,20 @@ function SignedInLists({ recentItems }: { recentItems: HomeListItem[] }) {
   const { t } = useI18n();
   const { isAuthenticated } = useConvexAuth();
   const myLists = useQuery(api.lists.listMine, isAuthenticated ? {} : "skip");
+  const visitedLists = useQuery(
+    api.lists.listVisited,
+    isAuthenticated ? {} : "skip",
+  );
   const mineSlugs = new Set((myLists ?? []).map((list) => list.slug));
+  const visitedSlugs = new Set((visitedLists ?? []).map((list) => list.slug));
   const remainingRecent = recentItems.filter(
-    (item) => !mineSlugs.has(item.slug),
+    (item) => !mineSlugs.has(item.slug) && !visitedSlugs.has(item.slug),
   );
 
   return (
     <>
       <HomeListLinks title={t.myLists} lists={myLists ?? []} />
+      <HomeListLinks title={t.visitedLists} lists={visitedLists ?? []} />
       <HomeListLinks title={t.recentLists} lists={remainingRecent} />
     </>
   );

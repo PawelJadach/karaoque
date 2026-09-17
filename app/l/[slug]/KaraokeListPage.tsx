@@ -2,12 +2,12 @@
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Check, ClipboardPaste, Copy, Home, Lock, Mic2, Pencil, Plus, SkipForward, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { type ClipboardEvent as ReactClipboardEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LanguageSwitch } from "../../../components/LanguageSwitch";
-import { AuthControls } from "../../../components/AuthControls";
+import { AuthControls, BoardSignInPrompt } from "../../../components/AuthControls";
 import {
   translateError,
   useI18n,
@@ -109,6 +109,9 @@ export function KaraokeListPage({ slug }: { slug: string }) {
     api.lists.getPage,
     isClient ? { slug, password } : "skip",
   );
+  const { isAuthenticated } = useConvexAuth();
+  const recordVisit = useMutation(api.lists.recordVisit);
+  const recordedSlug = useRef<string | null>(null);
 
   useEffect(() => {
     if (!page) {
@@ -121,6 +124,17 @@ export function KaraokeListPage({ slug }: { slug: string }) {
       removeRecentList(slug);
     }
   }, [page, slug]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !page || page.status === "missing") {
+      return;
+    }
+    if (recordedSlug.current === slug) {
+      return;
+    }
+    recordedSlug.current = slug;
+    void recordVisit({ slug });
+  }, [isAuthenticated, page, recordVisit, slug]);
 
   const passwordError =
     emptyPasswordSubmit ||
@@ -184,6 +198,7 @@ export function KaraokeListPage({ slug }: { slug: string }) {
   if (page.status === "needs_password") {
     return (
       <ScreenShell>
+        <BoardSignInPrompt />
         <div className="rounded-3xl border border-line bg-card p-6">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-pink/20 text-pink">
             <Lock className="h-5 w-5" aria-hidden="true" />
@@ -226,6 +241,7 @@ export function KaraokeListPage({ slug }: { slug: string }) {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-4">
+      <BoardSignInPrompt />
       <nav className="mb-4 flex items-center gap-2 rounded-3xl border border-line bg-card p-2">
         <Link
           href="/"

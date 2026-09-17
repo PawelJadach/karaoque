@@ -14,6 +14,7 @@ import {
   listPageValidator,
   listSummaryValidator,
   MAX_MINE_LISTS,
+  MAX_VISITED_LISTS,
   MAX_NAME_LENGTH,
   MAX_PASSWORD_LENGTH,
   MAX_SONGS_PER_LIST,
@@ -128,6 +129,70 @@ export const listMine = query({
       name: list.name,
       hasPassword: Boolean(list.passwordHash),
     }));
+  },
+});
+
+export const listVisited = query({
+  args: {},
+  returns: v.array(listSummaryValidator),
+  handler: async (ctx) => {
+    const user = await getCurrentUserOrNull(ctx);
+    if (!user) {
+      return [];
+    }
+
+    const visits = await ctx.db
+      .query("listVisits")
+      .withIndex("by_user_and_visited", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .take(MAX_VISITED_LISTS);
+
+    const summaries = [];
+    for (const visit of visits) {
+      const list = await ctx.db.get("lists", visit.listId);
+      if (!list || list.ownerId === user._id) {
+        continue;
+      }
+      summaries.push({
+        slug: list.slug,
+        name: list.name,
+        hasPassword: Boolean(list.passwordHash),
+      });
+    }
+    return summaries;
+  },
+});
+
+export const recordVisit = mutation({
+  args: {
+    slug: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const list = await getListBySlug(ctx, args.slug);
+    if (!list || list.ownerId === user._id) {
+      return null;
+    }
+
+    const existing = await ctx.db
+      .query("listVisits")
+      .withIndex("by_user_and_list", (q) =>
+        q.eq("userId", user._id).eq("listId", list._id),
+      )
+      .unique();
+
+    const visitedAt = Date.now();
+    if (existing) {
+      await ctx.db.patch("listVisits", existing._id, { visitedAt });
+    } else {
+      await ctx.db.insert("listVisits", {
+        userId: user._id,
+        listId: list._id,
+        visitedAt,
+      });
+    }
+    return null;
   },
 });
 

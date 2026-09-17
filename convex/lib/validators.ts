@@ -43,3 +43,4 @@ export const MAX_NAME_LENGTH = 80;
 export const MAX_TITLE_LENGTH = 200;
 export const MAX_PASSWORD_LENGTH = 64;
 export const MAX_MINE_LISTS = 50;
+export const MAX_VISITED_LISTS = 50;

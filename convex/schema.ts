@@ -28,4 +28,12 @@ export default defineSchema({
     done: v.optional(v.boolean()),
     status: v.optional(songStatusValidator),
   }).index("by_list", ["listId"]),
+
+  listVisits: defineTable({
+    userId: v.id("users"),
+    listId: v.id("lists"),
+    visitedAt: v.number(),
+  })
+    .index("by_user_and_list", ["userId", "listId"])
+    .index("by_user_and_visited", ["userId", "visitedAt"]),
 });

@@ -12,9 +12,14 @@ const translations = {
     continueWithGoogle: "Kontynuuj z Google",
     googleShort: "Google",
     myLists: "Twoje listy",
+    visitedLists: "Odwiedzone",
     recentLists: "Ostatnio oglądane",
     signInHint:
       "Zaloguj się Google, żeby mieć swoje listy na każdym urządzeniu. Nadal możesz tworzyć listy bez konta.",
+    boardSignInTitle: "Zalogować się?",
+    boardSignInBody:
+      "Zaloguj się Google, żeby zapamiętać tę tablicę na koncie jako odwiedzoną. Możesz wejść bez logowania.",
+    notNow: "Nie teraz",
     name: "Nazwa",
     namePlaceholder: "np. Urodziny Asi",
     passwordOptional: "Hasło (opcjonalne)",
@@ -93,9 +98,14 @@ const translations = {
     continueWithGoogle: "Continue with Google",
     googleShort: "Google",
     myLists: "Your lists",
+    visitedLists: "Visited",
     recentLists: "Recently viewed",
     signInHint:
       "Sign in with Google to keep your lists on every device. You can still create lists without an account.",
+    boardSignInTitle: "Sign in?",
+    boardSignInBody:
+      "Sign in with Google to save this board to your account as visited. You can continue without signing in.",
+    notNow: "Not now",
     name: "Name",
     namePlaceholder: "e.g. Asia's birthday",
     passwordOptional: "Password (optional)",

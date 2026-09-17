@@ -1,7 +1,7 @@
 "use client";
 
 import { SignInButton, UserButton, useUser } from "@clerk/react";
-import { useConvexAuth } from "convex/react";
+import { useState } from "react";
 import { isClerkEnabled } from "../lib/clerk";
 import { useI18n } from "../lib/i18n";
 
@@ -9,46 +9,24 @@ export function AuthControls() {
   if (!isClerkEnabled) {
     return null;
   }
-  return <ClerkAuthControls />;
+  return <SignedInUserButton />;
 }
 
-function ClerkAuthControls() {
-  const { t } = useI18n();
+function SignedInUserButton() {
   const { isLoaded, isSignedIn } = useUser();
 
-  if (!isClerkEnabled) {
+  if (!isLoaded || !isSignedIn) {
     return null;
   }
 
-  if (!isLoaded) {
-    return (
-      <div className="h-11 w-11 shrink-0 rounded-full border border-line" />
-    );
-  }
-
-  if (isSignedIn) {
-    return (
-      <UserButton
-        appearance={{
-          elements: {
-            avatarBox: "h-11 w-11",
-          },
-        }}
-      />
-    );
-  }
-
   return (
-    <SignInButton mode="modal">
-      <button
-        type="button"
-        className="inline-flex h-11 items-center gap-2 rounded-2xl border border-line bg-white px-3 text-sm font-semibold text-zinc-900"
-      >
-        <GoogleMark />
-        <span className="hidden sm:inline">{t.continueWithGoogle}</span>
-        <span className="sm:hidden">{t.googleShort}</span>
-      </button>
-    </SignInButton>
+    <UserButton
+      appearance={{
+        elements: {
+          avatarBox: "h-11 w-11",
+        },
+      }}
+    />
   );
 }
 
@@ -61,27 +39,82 @@ export function GoogleSignInBanner() {
 
 function ClerkGoogleSignInBanner() {
   const { t } = useI18n();
-  const { isAuthenticated, isLoading } = useConvexAuth();
+  const { isLoaded, isSignedIn } = useUser();
 
-  if (!isClerkEnabled || isLoading || isAuthenticated) {
+  if (!isLoaded || isSignedIn) {
     return null;
   }
 
   return (
-    <div className="mt-5 rounded-3xl border border-line bg-card p-5">
+    <div className="mb-5 rounded-3xl border border-line bg-card p-5">
       <p className="text-sm leading-5 text-muted">{t.signInHint}</p>
       <div className="mt-4">
-        <SignInButton mode="modal">
-          <button
-            type="button"
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-line bg-white px-4 text-sm font-semibold text-zinc-900"
-          >
-            <GoogleMark />
-            {t.continueWithGoogle}
-          </button>
-        </SignInButton>
+        <GoogleSignInButton label={t.continueWithGoogle} />
       </div>
     </div>
+  );
+}
+
+export function BoardSignInPrompt() {
+  if (!isClerkEnabled) {
+    return null;
+  }
+  return <ClerkBoardSignInPrompt />;
+}
+
+function ClerkBoardSignInPrompt() {
+  const { t } = useI18n();
+  const { isLoaded, isSignedIn } = useUser();
+  const [dismissed, setDismissed] = useState(false);
+
+  if (!isLoaded || isSignedIn || dismissed) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center p-4 sm:items-center">
+      <button
+        type="button"
+        aria-label={t.close}
+        onClick={() => setDismissed(true)}
+        className="absolute inset-0 bg-black/60"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="board-signin-title"
+        className="relative z-10 w-full max-w-sm rounded-3xl border border-line bg-card p-5"
+      >
+        <h2 id="board-signin-title" className="text-lg font-semibold">
+          {t.boardSignInTitle}
+        </h2>
+        <p className="mt-2 text-sm leading-5 text-muted">{t.boardSignInBody}</p>
+        <div className="mt-5 space-y-2">
+          <GoogleSignInButton label={t.continueWithGoogle} />
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="h-12 w-full rounded-2xl border border-line text-sm font-semibold text-muted"
+          >
+            {t.notNow}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GoogleSignInButton({ label }: { label: string }) {
+  return (
+    <SignInButton mode="modal">
+      <button
+        type="button"
+        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-line bg-white px-4 text-sm font-semibold text-zinc-900"
+      >
+        <GoogleMark />
+        {label}
+      </button>
+    </SignInButton>
   );
 }
 
