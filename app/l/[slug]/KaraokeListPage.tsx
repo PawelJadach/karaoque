@@ -35,27 +35,6 @@ type Access = {
   password?: string;
 };
 
-function listSummary(songs: Song[], t: Translations): string {
-  const now = songs.filter((song) => song.status === "now").length;
-  const next = songs.filter((song) => song.status === "next").length;
-  const todo = songs.filter((song) => song.status === "todo").length;
-  const done = songs.filter((song) => song.status === "done").length;
-  const parts: string[] = [];
-  if (now > 0) {
-    parts.push(`${now} ${t.nowLabel}`);
-  }
-  if (next > 0) {
-    parts.push(`${next} ${t.nextLabel}`);
-  }
-  if (todo > 0 || parts.length === 0) {
-    parts.push(`${todo} ${t.toSing}`);
-  }
-  if (done > 0) {
-    parts.push(`${done} ${t.done}`);
-  }
-  return parts.join(" · ");
-}
-
 function songsFromClipboard(raw: string): string[] {
   const titles: string[] = [];
   const seen = new Set<string>();
@@ -296,7 +275,6 @@ export function KaraokeListPage({ slug }: { slug: string }) {
         <h1 className="truncate text-2xl font-bold leading-tight">
           {page.name}
         </h1>
-        <p className="text-sm text-muted">{listSummary(page.songs, t)}</p>
       </header>
 
       {actionError ? (
@@ -552,14 +530,14 @@ function SongRow({
 
   const rowClass =
     song.status === "now"
-      ? "rounded-2xl border border-pink/70 bg-pink/15 px-2 py-2 shadow-[0_0_24px_rgba(255,77,141,0.18)]"
+      ? "rounded-2xl border border-pink/70 bg-pink/15 py-2 pl-2 pr-4 shadow-[0_0_24px_rgba(255,77,141,0.18)]"
       : song.status === "next"
-        ? "rounded-2xl border border-gold/45 bg-gold/10 px-2 py-2"
-        : "rounded-2xl border border-line bg-card px-2 py-2";
+        ? "rounded-2xl border border-gold/45 bg-gold/10 py-2 pl-2 pr-4"
+        : "rounded-2xl border border-line bg-card py-2 pl-2 pr-4";
 
   return (
     <li className={rowClass}>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-3">
         <div className="flex shrink-0 items-center rounded-xl border border-line/80 bg-black/20 p-0.5">
           <StatusButton
             label={song.status === "now" ? t.markTodo : t.markNow}
@@ -608,7 +586,7 @@ function SongRow({
           </form>
         ) : (
           <p
-            className={`min-w-0 flex-1 px-2 text-base leading-5 ${
+            className={`min-w-0 flex-1 truncate px-2 pr-1 text-base leading-5 ${
               song.status === "done" ? "text-muted line-through" : ""
             }`}
           >
@@ -617,7 +595,7 @@ function SongRow({
         )}
 
         {editing ? (
-          <>
+          <div className="flex shrink-0 items-center pl-1">
             <IconButton
               label={t.save}
               onClick={() => void saveTitle()}
@@ -634,9 +612,9 @@ function SongRow({
             >
               <X className="h-4 w-4" />
             </IconButton>
-          </>
+          </div>
         ) : confirmDelete ? (
-          <>
+          <div className="flex shrink-0 items-center gap-1 pl-1">
             <button
               type="button"
               disabled={busy}
@@ -659,9 +637,9 @@ function SongRow({
             <IconButton label={t.cancel} onClick={() => setConfirmDelete(false)}>
               <X className="h-4 w-4" />
             </IconButton>
-          </>
+          </div>
         ) : (
-          <>
+          <div className="flex shrink-0 items-center pl-1">
             <IconButton
               label={t.edit}
               onClick={() => {
@@ -675,7 +653,7 @@ function SongRow({
             <IconButton label={t.delete} onClick={() => setConfirmDelete(true)}>
               <Trash2 className="h-4 w-4" />
             </IconButton>
-          </>
+          </div>
         )}
       </div>
     </li>
