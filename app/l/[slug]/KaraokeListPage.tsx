@@ -3,9 +3,9 @@
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Check, Copy, Lock, Mic2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, ClipboardPaste, Copy, Lock, Mic2, Pencil, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { type ClipboardEvent as ReactClipboardEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LanguageSwitch } from "../../../components/LanguageSwitch";
 import {
   translateError,
@@ -17,6 +17,7 @@ import {
   loadListPassword,
   saveListPassword,
 } from "../../../lib/listPassword";
+import { MAX_TITLE_LENGTH } from "../../../convex/lib/validators";
 
 type Song = {
   _id: Id<"songs">;
@@ -28,6 +29,41 @@ type Access = {
   slug: string;
   password?: string;
 };
+
+function songsFromClipboard(raw: string): string[] {
+  const titles: string[] = [];
+  const seen = new Set<string>();
+  for (const line of raw.split(/\r?\n/)) {
+    const title = line
+      .replace(/^\s*(?:[-*•]+|\d+[.)])\s+/, "")
+      .trim()
+      .slice(0, MAX_TITLE_LENGTH);
+    if (!title || seen.has(title)) {
+      continue;
+    }
+    seen.add(title);
+    titles.push(title);
+  }
+  return titles;
+}
+
+function pastedToast(count: number, t: Translations): string {
+  if (count === 1) {
+    return t.pastedOne;
+  }
+  return t.pastedMany.replace("{n}", String(count));
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  if (target.isContentEditable) {
+    return true;
+  }
+  const tag = target.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
 
 export function KaraokeListPage({ slug }: { slug: string }) {
   const { t } = useI18n();
@@ -236,12 +272,14 @@ export function KaraokeListPage({ slug }: { slug: string }) {
 
       <AddSongBar
         t={t}
+        onToast={setToast}
         onAdd={async (title) => {
           setActionError(null);
           try {
             await addSong({ ...access, title });
           } catch (caught) {
             setActionError(translateError(caught, t, "ADD_FAILED"));
+            throw caught;
           }
         }}
       />
@@ -550,12 +588,48 @@ function IconButton({
 function AddSongBar({
   t,
   onAdd,
+  onToast,
 }: {
   t: Translations;
   onAdd: (title: string) => Promise<void>;
+  onToast: (message: string | null) => void;
 }) {
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const flashToast = useCallback(
+    (message: string) => {
+      onToast(message);
+      window.setTimeout(() => onToast(null), 2500);
+    },
+    [onToast],
+  );
+
+  const addTitles = useCallback(
+    async (titles: string[]) => {
+      if (titles.length === 0 || busy) {
+        return;
+      }
+      setBusy(true);
+      let added = 0;
+      try {
+        for (const nextTitle of titles) {
+          await onAdd(nextTitle);
+          added += 1;
+        }
+        setTitle("");
+        flashToast(pastedToast(added, t));
+      } catch {
+        if (added > 0) {
+          setTitle("");
+        }
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, flashToast, onAdd, t],
+  );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -567,10 +641,64 @@ function AddSongBar({
     try {
       await onAdd(nextTitle);
       setTitle("");
+    } catch {
+      // Error is shown by the list page.
     } finally {
       setBusy(false);
     }
   }
+
+  function onPaste(event: ReactClipboardEvent<HTMLInputElement>) {
+    const pasted = event.clipboardData.getData("text");
+    const titles = songsFromClipboard(pasted);
+    const shouldAddNow =
+      titles.length > 1 || (titles.length === 1 && title.trim().length === 0);
+    if (!shouldAddNow) {
+      return;
+    }
+    event.preventDefault();
+    void addTitles(titles);
+  }
+
+  async function pasteFromClipboard() {
+    if (busy) {
+      return;
+    }
+    try {
+      const pasted = await navigator.clipboard.readText();
+      const titles = songsFromClipboard(pasted);
+      if (titles.length === 0) {
+        flashToast(t.clipboardEmpty);
+        return;
+      }
+      await addTitles(titles);
+    } catch {
+      flashToast(t.clipboardBlocked);
+      inputRef.current?.focus();
+    }
+  }
+
+  useEffect(() => {
+    function onWindowPaste(event: ClipboardEvent) {
+      if (
+        busy ||
+        isTypingTarget(event.target) ||
+        event.defaultPrevented ||
+        document.querySelector('[role="dialog"]')
+      ) {
+        return;
+      }
+      const pasted = event.clipboardData?.getData("text") ?? "";
+      const titles = songsFromClipboard(pasted);
+      if (titles.length === 0) {
+        return;
+      }
+      event.preventDefault();
+      void addTitles(titles);
+    }
+    window.addEventListener("paste", onWindowPaste);
+    return () => window.removeEventListener("paste", onWindowPaste);
+  }, [addTitles, busy]);
 
   return (
     <form
@@ -580,14 +708,25 @@ function AddSongBar({
     >
       <div className="mx-auto flex w-full max-w-lg gap-2">
         <input
+          ref={inputRef}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
+          onPaste={onPaste}
           maxLength={200}
           autoComplete="off"
           enterKeyHint="done"
           placeholder={t.addSong}
           className="h-14 min-w-0 flex-1 rounded-2xl border border-line bg-black/35 px-4 text-base outline-none placeholder:text-muted/70 focus:border-pink"
         />
+        <button
+          type="button"
+          onClick={() => void pasteFromClipboard()}
+          disabled={busy}
+          aria-label={t.pasteFromClipboard}
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-line text-foreground disabled:opacity-50"
+        >
+          <ClipboardPaste className="h-5 w-5" />
+        </button>
         <button
           type="submit"
           disabled={busy || title.trim().length === 0}
