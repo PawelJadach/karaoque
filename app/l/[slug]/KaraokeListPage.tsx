@@ -3,19 +3,10 @@
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import {
-  ArrowLeft,
-  Check,
-  Copy,
-  Lock,
-  Mic2,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Check, Copy, Lock, Mic2, Pencil, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { LanguageSwitch } from "../../../components/LanguageSwitch";
 import {
   translateError,
   useI18n,
@@ -48,7 +39,6 @@ export function KaraokeListPage({ slug }: { slug: string }) {
   const password = passwordOverride ?? storedPassword;
   const [passwordDraft, setPasswordDraft] = useState("");
   const [emptyPasswordSubmit, setEmptyPasswordSubmit] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -159,75 +149,55 @@ export function KaraokeListPage({ slug }: { slug: string }) {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-4">
-      <header className="mb-5 flex items-start gap-3">
-        <Link
-          href="/"
-          aria-label={t.home}
-          className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-line bg-card"
+      <nav className="mb-4 flex items-center gap-2 rounded-3xl border border-line bg-card p-2">
+        <button
+          type="button"
+          onClick={() => void copyLink()}
+          aria-label={t.copyLink}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-line"
         >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-[0.18em] text-gold">
-            <Mic2 className="h-3.5 w-3.5" aria-hidden="true" />
-            Karaoque
-          </p>
-          <h1 className="truncate text-2xl font-bold leading-tight">
-            {page.name}
-          </h1>
-          <p className="text-sm text-muted">
-            {todo.length} {t.toSing}
-            {done.length > 0 ? ` · ${done.length} ${t.done}` : ""}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => void copyLink()}
-            aria-label={t.copyLink}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-card"
-          >
-            <Copy className="h-5 w-5" />
-          </button>
-          {page.hasPassword && password ? (
+          <Copy className="h-5 w-5" />
+        </button>
+        {page.hasPassword && password ? (
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-line px-3 py-1.5">
+            <Lock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+            <p className="min-w-0 flex-1 break-all font-mono text-sm text-gold">
+              {password}
+            </p>
             <button
               type="button"
-              onClick={() => setShowPassword((open) => !open)}
-              aria-label={showPassword ? t.hidePassword : t.showPassword}
-              aria-expanded={showPassword}
-              className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
-                showPassword
-                  ? "bg-pink text-white"
-                  : "border border-line bg-card"
-              }`}
+              onClick={() => void copyPassword()}
+              aria-label={t.copyPassword}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted"
             >
-              <Lock className="h-5 w-5" />
+              <Copy className="h-4 w-4" />
             </button>
-          ) : null}
-        </div>
-      </header>
-
-      {showPassword && password ? (
-        <div className="mb-4 flex items-center gap-2 rounded-2xl border border-line bg-card px-4 py-3">
-          <p className="min-w-0 flex-1 break-all font-mono text-base text-gold">
-            {password}
-          </p>
-          <button
-            type="button"
-            onClick={() => void copyPassword()}
-            aria-label={t.copyPassword}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line text-muted"
-          >
-            <Copy className="h-4 w-4" />
-          </button>
-        </div>
-      ) : null}
+          </div>
+        ) : (
+          <div className="min-w-0 flex-1" />
+        )}
+        <LanguageSwitch />
+      </nav>
 
       {toast ? (
         <p className="mb-4 rounded-2xl bg-gold/15 px-4 py-3 text-sm text-gold">
           {toast}
         </p>
       ) : null}
+
+      <header className="mb-5">
+        <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-[0.18em] text-gold">
+          <Mic2 className="h-3.5 w-3.5" aria-hidden="true" />
+          Karaoque
+        </p>
+        <h1 className="truncate text-2xl font-bold leading-tight">
+          {page.name}
+        </h1>
+        <p className="text-sm text-muted">
+          {todo.length} {t.toSing}
+          {done.length > 0 ? ` · ${done.length} ${t.done}` : ""}
+        </p>
+      </header>
 
       {actionError ? (
         <p className="mb-4 rounded-2xl bg-pink/15 px-4 py-3 text-sm text-pink">
@@ -278,8 +248,11 @@ export function KaraokeListPage({ slug }: { slug: string }) {
 
 function ScreenShell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg items-center px-4 py-10">
-      {children}
+    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 py-4">
+      <div className="mb-8 flex justify-end">
+        <LanguageSwitch />
+      </div>
+      <div className="flex flex-1 items-center">{children}</div>
     </main>
   );
 }

@@ -5,6 +5,7 @@ import { useMutation } from "convex/react";
 import { Lock, Mic2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { LanguageSwitch } from "../components/LanguageSwitch";
 import { translateError, useI18n } from "../lib/i18n";
 import { saveListPassword } from "../lib/listPassword";
 
@@ -44,7 +45,10 @@ export default function HomePage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-10 pt-6 sm:pt-10">
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-10 pt-4 sm:pt-8">
+      <div className="mb-6 flex justify-end">
+        <LanguageSwitch />
+      </div>
       <div className="mb-8 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-pink/20 text-pink shadow-[0_0_40px_rgba(255,77,141,0.35)]">
           <Mic2 className="h-8 w-8" aria-hidden="true" />
