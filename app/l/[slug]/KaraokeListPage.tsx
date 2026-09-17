@@ -3,7 +3,7 @@
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { Check, ClipboardPaste, Copy, Home, Lock, Mic2, Pencil, Plus, SkipForward, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ClipboardPaste, Copy, Home, ListMusic, Lock, Mic2, Pencil, Plus, SkipForward, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { type ClipboardEvent as ReactClipboardEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LanguageSwitch } from "../../../components/LanguageSwitch";
@@ -487,10 +487,44 @@ function SongRow({
   const updateSong = useMutation(api.songs.update);
   const setSongStatus = useMutation(api.songs.setStatus);
   const removeSong = useMutation(api.songs.remove);
+  const rowRef = useRef<HTMLLIElement>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(song.title);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!statusOpen && !actionsOpen) {
+      return;
+    }
+    function onPointerDown(event: PointerEvent) {
+      if (rowRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      setStatusOpen(false);
+      if (!editing && !confirmDelete) {
+        setActionsOpen(false);
+      }
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+      setStatusOpen(false);
+      if (editing || confirmDelete) {
+        return;
+      }
+      setActionsOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [actionsOpen, confirmDelete, editing, statusOpen]);
 
   async function saveTitle() {
     const title = draft.trim();
@@ -512,14 +546,17 @@ function SongRow({
   }
 
   async function changeStatus(next: SongStatus) {
-    const status = song.status === next ? "todo" : next;
+    setStatusOpen(false);
+    if (next === song.status) {
+      return;
+    }
     setBusy(true);
     onError(null);
     try {
       await setSongStatus({
         ...access,
         songId: song._id,
-        status,
+        status: next,
       });
     } catch (caught) {
       onError(translateError(caught, t, "UPDATE_FAILED"));
@@ -528,166 +565,232 @@ function SongRow({
     }
   }
 
+  async function confirmRemove() {
+    setBusy(true);
+    onError(null);
+    try {
+      await removeSong({ ...access, songId: song._id });
+    } catch (caught) {
+      onError(translateError(caught, t, "DELETE_FAILED"));
+      setBusy(false);
+    }
+  }
+
   const rowClass =
     song.status === "now"
-      ? "rounded-2xl border border-pink/70 bg-pink/15 py-2 pl-2 pr-4 shadow-[0_0_24px_rgba(255,77,141,0.18)]"
+      ? "rounded-2xl border border-pink/70 bg-pink/15 px-3 py-3 shadow-[0_0_24px_rgba(255,77,141,0.18)]"
       : song.status === "next"
-        ? "rounded-2xl border border-gold/45 bg-gold/10 py-2 pl-2 pr-4"
-        : "rounded-2xl border border-line bg-card py-2 pl-2 pr-4";
+        ? "rounded-2xl border border-gold/45 bg-gold/10 px-3 py-3"
+        : "rounded-2xl border border-line bg-card px-3 py-3";
 
   return (
-    <li className={rowClass}>
-      <div className="flex items-center gap-3">
-        <div className="flex shrink-0 items-center rounded-xl border border-line/80 bg-black/20 p-0.5">
-          <StatusButton
-            label={song.status === "now" ? t.markTodo : t.markNow}
-            active={song.status === "now"}
-            activeClass="bg-pink/25 text-pink"
-            disabled={busy}
-            onClick={() => void changeStatus("now")}
-          >
-            <Mic2 className="h-4 w-4" />
-          </StatusButton>
-          <StatusButton
-            label={song.status === "next" ? t.markTodo : t.markNext}
-            active={song.status === "next"}
-            activeClass="bg-gold/25 text-gold"
-            disabled={busy}
-            onClick={() => void changeStatus("next")}
-          >
-            <SkipForward className="h-4 w-4" />
-          </StatusButton>
-          <StatusButton
-            label={song.status === "done" ? t.markTodo : t.markDone}
-            active={song.status === "done"}
-            activeClass="bg-gold/20 text-gold"
-            disabled={busy}
-            onClick={() => void changeStatus("done")}
-          >
-            <Check className="h-4 w-4" />
-          </StatusButton>
-        </div>
+    <li ref={rowRef} className={rowClass}>
+      <div className="flex items-start gap-3">
+        <StatusMenu
+          t={t}
+          status={song.status}
+          open={statusOpen}
+          disabled={busy}
+          onToggle={() => {
+            setStatusOpen((open) => !open);
+            setActionsOpen(false);
+          }}
+          onSelect={(status) => void changeStatus(status)}
+        />
 
-        {editing ? (
-          <form
-            className="min-w-0 flex-1"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void saveTitle();
-            }}
-          >
-            <input
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              autoFocus
-              maxLength={200}
-              className="h-11 w-full rounded-xl border border-pink bg-black/30 px-3 text-base outline-none"
-            />
-          </form>
-        ) : (
-          <p
-            className={`min-w-0 flex-1 truncate px-2 pr-1 text-base leading-5 ${
-              song.status === "done" ? "text-muted line-through" : ""
-            }`}
-          >
-            {song.title}
-          </p>
-        )}
-
-        {editing ? (
-          <div className="flex shrink-0 items-center pl-1">
-            <IconButton
-              label={t.save}
-              onClick={() => void saveTitle()}
-              disabled={busy}
-            >
-              <Check className="h-4 w-4" />
-            </IconButton>
-            <IconButton
-              label={t.cancel}
-              onClick={() => {
-                setEditing(false);
-                setDraft(song.title);
+        <div className="min-w-0 flex-1">
+          {editing ? (
+            <form
+              className="flex items-start gap-1"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void saveTitle();
               }}
             >
-              <X className="h-4 w-4" />
-            </IconButton>
-          </div>
-        ) : confirmDelete ? (
-          <div className="flex shrink-0 items-center gap-1 pl-1">
+              <input
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                autoFocus
+                maxLength={200}
+                className="h-11 min-w-0 flex-1 rounded-xl border border-pink bg-black/30 px-3 text-base outline-none"
+              />
+              <IconButton
+                label={t.save}
+                onClick={() => void saveTitle()}
+                disabled={busy}
+              >
+                <Check className="h-4 w-4" />
+              </IconButton>
+              <IconButton
+                label={t.cancel}
+                onClick={() => {
+                  setEditing(false);
+                  setDraft(song.title);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </IconButton>
+            </form>
+          ) : (
             <button
               type="button"
-              disabled={busy}
               onClick={() => {
-                void (async () => {
-                  setBusy(true);
-                  onError(null);
-                  try {
-                    await removeSong({ ...access, songId: song._id });
-                  } catch (caught) {
-                    onError(translateError(caught, t, "DELETE_FAILED"));
-                    setBusy(false);
-                  }
-                })();
-              }}
-              className="h-11 rounded-xl bg-pink px-3 text-sm font-semibold text-white"
-            >
-              {t.delete}
-            </button>
-            <IconButton label={t.cancel} onClick={() => setConfirmDelete(false)}>
-              <X className="h-4 w-4" />
-            </IconButton>
-          </div>
-        ) : (
-          <div className="flex shrink-0 items-center pl-1">
-            <IconButton
-              label={t.edit}
-              onClick={() => {
+                setStatusOpen(false);
                 setConfirmDelete(false);
-                setDraft(song.title);
-                setEditing(true);
+                setActionsOpen((open) => !open);
               }}
+              className={`w-full py-1.5 text-left text-base leading-6 break-all ${
+                song.status === "done" ? "text-muted line-through" : ""
+              }`}
             >
-              <Pencil className="h-4 w-4" />
-            </IconButton>
-            <IconButton label={t.delete} onClick={() => setConfirmDelete(true)}>
-              <Trash2 className="h-4 w-4" />
-            </IconButton>
-          </div>
-        )}
+              {song.title}
+            </button>
+          )}
+
+          {actionsOpen && !editing ? (
+            <div className="mt-2 flex items-center gap-2">
+              {confirmDelete ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void confirmRemove()}
+                    className="h-11 rounded-xl bg-pink px-3 text-sm font-semibold text-white"
+                  >
+                    {t.delete}
+                  </button>
+                  <IconButton
+                    label={t.cancel}
+                    onClick={() => setConfirmDelete(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </IconButton>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmDelete(false);
+                      setDraft(song.title);
+                      setEditing(true);
+                      setActionsOpen(false);
+                    }}
+                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-line px-3 text-sm font-semibold"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    {t.edit}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-line px-3 text-sm font-semibold text-muted"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {t.delete}
+                  </button>
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
       </div>
     </li>
   );
 }
 
-function StatusButton({
-  children,
-  label,
-  active,
-  activeClass,
-  onClick,
+function StatusMenu({
+  t,
+  status,
+  open,
   disabled,
+  onToggle,
+  onSelect,
 }: {
-  children: React.ReactNode;
-  label: string;
-  active: boolean;
-  activeClass: string;
-  onClick: () => void;
+  t: Translations;
+  status: SongStatus;
+  open: boolean;
   disabled?: boolean;
+  onToggle: () => void;
+  onSelect: (status: SongStatus) => void;
 }) {
+  const options: Array<{
+    value: SongStatus;
+    label: string;
+    icon: typeof Mic2;
+    className: string;
+  }> = [
+    {
+      value: "now",
+      label: t.nowTitle,
+      icon: Mic2,
+      className: "text-pink",
+    },
+    {
+      value: "next",
+      label: t.nextTitle,
+      icon: SkipForward,
+      className: "text-gold",
+    },
+    {
+      value: "todo",
+      label: t.todoTitle,
+      icon: ListMusic,
+      className: "text-muted",
+    },
+    {
+      value: "done",
+      label: t.doneTitle,
+      icon: Check,
+      className: "text-gold",
+    },
+  ];
+  const current =
+    options.find((option) => option.value === status) ?? options[0]!;
+  const CurrentIcon = current.icon;
+
   return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={active}
-      disabled={disabled}
-      onClick={onClick}
-      className={`flex h-11 w-10 shrink-0 items-center justify-center rounded-lg disabled:opacity-50 ${
-        active ? activeClass : "text-muted"
-      }`}
-    >
-      {children}
-    </button>
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        aria-label={t.changeStatus}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={onToggle}
+        className={`flex h-11 w-11 items-center justify-center rounded-xl border border-line/80 bg-black/20 disabled:opacity-50 ${current.className}`}
+      >
+        <CurrentIcon className="h-4 w-4" />
+        <ChevronDown className="absolute bottom-1 right-1 h-2.5 w-2.5 text-muted" />
+      </button>
+      {open ? (
+        <ul
+          role="listbox"
+          className="absolute left-0 z-20 mt-1 w-60 rounded-2xl border border-line bg-[#241030] p-1 shadow-2xl"
+        >
+          {options.map((option) => {
+            const Icon = option.icon;
+            const selected = option.value === status;
+            return (
+              <li key={option.value}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  onClick={() => onSelect(option.value)}
+                  className={`flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium ${
+                    selected ? "bg-white/10" : ""
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${option.className}`} />
+                  {option.label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
   );
 }
 
