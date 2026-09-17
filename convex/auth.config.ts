@@ -1,11 +1,13 @@
 import type { AuthConfig } from "convex/server";
 
-const clerkIssuerDomain = "https://classic-sole-201.clerk.accounts.dev";
-
 export default {
   providers: [
     {
-      domain: clerkIssuerDomain,
+      domain: "https://classic-sole-201.clerk.accounts.dev",
+      applicationID: "convex",
+    },
+    {
+      domain: "https://clerk.karaoque.vercel.app",
       applicationID: "convex",
     },
   ],
