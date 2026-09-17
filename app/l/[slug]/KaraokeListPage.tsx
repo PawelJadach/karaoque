@@ -11,7 +11,6 @@ import {
   Mic2,
   Pencil,
   Plus,
-  Share2,
   Trash2,
   X,
 } from "lucide-react";
@@ -49,7 +48,8 @@ export function KaraokeListPage({ slug }: { slug: string }) {
   const password = passwordOverride ?? storedPassword;
   const [passwordDraft, setPasswordDraft] = useState("");
   const [emptyPasswordSubmit, setEmptyPasswordSubmit] = useState(false);
-  const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const page = useQuery(
@@ -76,42 +76,10 @@ export function KaraokeListPage({ slug }: { slug: string }) {
     setPasswordOverride(nextPassword);
   }
 
-  async function shareList() {
-    const url = window.location.href;
-    const title = page?.status === "ok" ? page.name : "Karaoque";
-    const shareText =
-      password && page?.status === "ok" && page.hasPassword
-        ? `${t.password}: ${password}`
-        : undefined;
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title,
-          url,
-          text: shareText,
-        });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      setShareMessage(t.linkCopied);
-    } catch (caught) {
-      if (caught instanceof DOMException && caught.name === "AbortError") {
-        return;
-      }
-      try {
-        await navigator.clipboard.writeText(url);
-        setShareMessage(t.linkCopied);
-      } catch {
-        setShareMessage(t.copyFromBar);
-      }
-    }
-    window.setTimeout(() => setShareMessage(null), 2500);
-  }
-
   async function copyLink() {
     await navigator.clipboard.writeText(window.location.href);
-    setShareMessage(t.linkCopied);
-    window.setTimeout(() => setShareMessage(null), 2500);
+    setToast(t.linkCopied);
+    window.setTimeout(() => setToast(null), 2500);
   }
 
   async function copyPassword() {
@@ -119,8 +87,8 @@ export function KaraokeListPage({ slug }: { slug: string }) {
       return;
     }
     await navigator.clipboard.writeText(password);
-    setShareMessage(t.passwordCopied);
-    window.setTimeout(() => setShareMessage(null), 2500);
+    setToast(t.passwordCopied);
+    window.setTimeout(() => setToast(null), 2500);
   }
 
   if (!isClient || page === undefined) {
@@ -221,43 +189,43 @@ export function KaraokeListPage({ slug }: { slug: string }) {
           >
             <Copy className="h-5 w-5" />
           </button>
-          <button
-            type="button"
-            onClick={() => void shareList()}
-            aria-label={t.share}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-pink text-white"
-          >
-            <Share2 className="h-5 w-5" />
-          </button>
+          {page.hasPassword && password ? (
+            <button
+              type="button"
+              onClick={() => setShowPassword((open) => !open)}
+              aria-label={showPassword ? t.hidePassword : t.showPassword}
+              aria-expanded={showPassword}
+              className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
+                showPassword
+                  ? "bg-pink text-white"
+                  : "border border-line bg-card"
+              }`}
+            >
+              <Lock className="h-5 w-5" />
+            </button>
+          ) : null}
         </div>
       </header>
 
-      {page.hasPassword && password ? (
-        <div className="mb-4 rounded-2xl border border-line bg-card px-4 py-3">
-          <p className="text-sm text-muted">{t.passwordBanner}</p>
-          <div className="mt-2 flex items-center gap-2">
-            <p className="min-w-0 flex-1 break-all font-mono text-base text-gold">
-              {password}
-            </p>
-            <button
-              type="button"
-              onClick={() => void copyPassword()}
-              aria-label={t.copyPassword}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line text-muted"
-            >
-              <Copy className="h-4 w-4" />
-            </button>
-          </div>
+      {showPassword && password ? (
+        <div className="mb-4 flex items-center gap-2 rounded-2xl border border-line bg-card px-4 py-3">
+          <p className="min-w-0 flex-1 break-all font-mono text-base text-gold">
+            {password}
+          </p>
+          <button
+            type="button"
+            onClick={() => void copyPassword()}
+            aria-label={t.copyPassword}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line text-muted"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
         </div>
-      ) : page.hasPassword ? (
-        <p className="mb-4 rounded-2xl border border-line bg-card px-4 py-3 text-sm text-muted">
-          {t.passwordBanner}
-        </p>
       ) : null}
 
-      {shareMessage ? (
+      {toast ? (
         <p className="mb-4 rounded-2xl bg-gold/15 px-4 py-3 text-sm text-gold">
-          {shareMessage}
+          {toast}
         </p>
       ) : null}
 
