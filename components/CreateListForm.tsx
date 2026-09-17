@@ -1,0 +1,105 @@
+"use client";
+
+import { api } from "../convex/_generated/api";
+import { useMutation } from "convex/react";
+import { Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
+import { saveCreatedList } from "../lib/createdLists";
+import { translateError, useI18n } from "../lib/i18n";
+import { saveListPassword } from "../lib/listPassword";
+import { rememberRecentList } from "../lib/recentLists";
+
+export function CreateListForm() {
+  const router = useRouter();
+  const { t } = useI18n();
+  const createList = useMutation(api.lists.create);
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError(t.errors.NAME_REQUIRED);
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      const trimmedPassword = password.trim();
+      const created = await createList({
+        name: trimmedName,
+        password: trimmedPassword || undefined,
+      });
+      saveCreatedList({
+        slug: created.slug,
+        name: trimmedName,
+        claimToken: created.claimToken,
+      });
+      rememberRecentList(created.slug, trimmedName);
+      if (trimmedPassword) {
+        saveListPassword(created.slug, trimmedPassword);
+      }
+      router.push(`/l/${created.slug}`);
+    } catch (caught) {
+      setError(translateError(caught, t, "CREATE_FAILED"));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="rounded-3xl border border-line bg-card p-5 shadow-2xl backdrop-blur-md sm:p-6"
+    >
+      <label className="block">
+        <span className="mb-2 block text-sm font-medium text-muted">
+          {t.name}
+        </span>
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          maxLength={80}
+          autoComplete="off"
+          placeholder={t.namePlaceholder}
+          className="h-14 w-full rounded-2xl border border-line bg-black/25 px-4 text-base text-foreground outline-none placeholder:text-muted/60 focus:border-pink"
+        />
+      </label>
+
+      <label className="mt-4 block">
+        <span className="mb-2 flex items-center gap-2 text-sm font-medium text-muted">
+          <Lock className="h-4 w-4" aria-hidden="true" />
+          {t.passwordOptional}
+        </span>
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          maxLength={64}
+          autoComplete="new-password"
+          placeholder={t.passwordPlaceholder}
+          className="h-14 w-full rounded-2xl border border-line bg-black/25 px-4 text-base text-foreground outline-none placeholder:text-muted/60 focus:border-pink"
+        />
+      </label>
+      <p className="mt-2 text-sm leading-5 text-muted">{t.passwordHint}</p>
+
+      {error ? (
+        <p className="mt-4 rounded-xl bg-pink/15 px-3 py-2 text-sm text-pink">
+          {error}
+        </p>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={busy}
+        className="mt-5 h-14 w-full rounded-2xl bg-pink text-base font-semibold text-white shadow-[0_10px_30px_rgba(255,77,141,0.35)] transition enabled:active:scale-[0.99] disabled:opacity-60"
+      >
+        {busy ? t.creatingList : t.createList}
+      </button>
+    </form>
+  );
+}

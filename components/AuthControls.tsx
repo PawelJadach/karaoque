@@ -30,31 +30,6 @@ function SignedInUserButton() {
   );
 }
 
-export function GoogleSignInBanner() {
-  if (!isClerkEnabled) {
-    return null;
-  }
-  return <ClerkGoogleSignInBanner />;
-}
-
-function ClerkGoogleSignInBanner() {
-  const { t } = useI18n();
-  const { isLoaded, isSignedIn } = useUser();
-
-  if (!isLoaded || isSignedIn) {
-    return null;
-  }
-
-  return (
-    <div className="mb-5 rounded-3xl border border-line bg-card p-5">
-      <p className="text-sm leading-5 text-muted">{t.signInHint}</p>
-      <div className="mt-4">
-        <GoogleSignInButton label={t.continueWithGoogle} />
-      </div>
-    </div>
-  );
-}
-
 export function BoardSignInPrompt() {
   if (!isClerkEnabled) {
     return null;
@@ -104,9 +79,25 @@ function ClerkBoardSignInPrompt() {
   );
 }
 
-function GoogleSignInButton({ label }: { label: string }) {
+export function GoogleSignInButton({
+  label,
+  forceRedirectUrl,
+}: {
+  label: string;
+  forceRedirectUrl?: string;
+}) {
   return (
-    <SignInButton mode="modal">
+    <SignInButton
+      mode="modal"
+      {...(forceRedirectUrl
+        ? {
+            forceRedirectUrl,
+            fallbackRedirectUrl: forceRedirectUrl,
+            signUpForceRedirectUrl: forceRedirectUrl,
+            signUpFallbackRedirectUrl: forceRedirectUrl,
+          }
+        : {})}
+    >
       <button
         type="button"
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-line bg-white px-4 text-sm font-semibold text-zinc-900"

@@ -185,7 +185,7 @@ export function KaraokeListPage({ slug }: { slug: string }) {
           <h1 className="text-2xl font-semibold">{t.missingTitle}</h1>
           <p className="mt-2 text-muted">{t.missingBody}</p>
           <Link
-            href="/"
+            href="/create"
             className="mt-6 inline-flex h-12 items-center justify-center rounded-2xl bg-pink px-5 font-semibold text-white"
           >
             {t.createNewList}

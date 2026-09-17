@@ -9,7 +9,16 @@ const translations = {
   pl: {
     homeTagline:
       "Wspólna lista piosenek na karaoke. Stwórz stronę, wyślij link znajomym — bez rejestracji.",
+    marketingPointShare:
+      "Stwórz listę i wyślij link — znajomi dodają piosenki od razu.",
+    marketingPointQueue: "Widać, kto śpiewa teraz, a kto jest następny.",
+    marketingPointNoApp:
+      "Bez instalacji. Konto tylko jeśli chcesz mieć listy na każdym urządzeniu.",
     continueWithGoogle: "Kontynuuj z Google",
+    continueWithoutAccount: "Kontynuuj",
+    signIn: "Zaloguj się",
+    signInBenefit:
+      "Konto zapamięta Twoje listy i odwiedzone tablice na każdym urządzeniu.",
     googleShort: "Google",
     myLists: "Twoje listy",
     visitedLists: "Odwiedzone",
@@ -96,7 +105,16 @@ const translations = {
   en: {
     homeTagline:
       "A shared karaoke song list. Create a page, send the link to friends — no sign-up.",
+    marketingPointShare:
+      "Create a list and send the link — friends add songs right away.",
+    marketingPointQueue: "See who's singing now and who's up next.",
+    marketingPointNoApp:
+      "No app to install. An account is only if you want your lists on every device.",
     continueWithGoogle: "Continue with Google",
+    continueWithoutAccount: "Continue",
+    signIn: "Sign in",
+    signInBenefit:
+      "An account keeps your lists and visited boards on every device.",
     googleShort: "Google",
     myLists: "Your lists",
     visitedLists: "Visited",
