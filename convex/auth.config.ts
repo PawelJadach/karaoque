@@ -1,16 +1,12 @@
 import type { AuthConfig } from "convex/server";
 
-// After creating a Clerk app, paste the Frontend API URL (issuer) here:
-// https://verb-noun-00.clerk.accounts.dev
-const clerkIssuerDomain = "";
+const clerkIssuerDomain = "https://classic-sole-201.clerk.accounts.dev";
 
 export default {
-  providers: clerkIssuerDomain
-    ? [
-        {
-          domain: clerkIssuerDomain,
-          applicationID: "convex",
-        },
-      ]
-    : [],
+  providers: [
+    {
+      domain: clerkIssuerDomain,
+      applicationID: "convex",
+    },
+  ],
 } satisfies AuthConfig;
