@@ -9,11 +9,6 @@ const translations = {
   pl: {
     homeTagline:
       "Wspólna lista piosenek na karaoke. Stwórz stronę, wyślij link znajomym — bez rejestracji.",
-    marketingPointShare:
-      "Stwórz listę i wyślij link — znajomi dodają piosenki od razu.",
-    marketingPointQueue: "Widać, kto śpiewa teraz, a kto jest następny.",
-    marketingPointNoApp:
-      "Bez instalacji. Konto tylko jeśli chcesz mieć listy na każdym urządzeniu.",
     continueWithGoogle: "Kontynuuj z Google",
     continueWithoutAccount: "Kontynuuj",
     signIn: "Zaloguj się",
@@ -36,6 +31,8 @@ const translations = {
     passwordHint:
       "Hasło nie jest wymagane. Jeśli je ustawisz, wyślij je osobno razem z linkiem.",
     createList: "Stwórz listę",
+    createListAsSignedIn: "jako zalogowany",
+    createListAsGuest: "jako niezalogowany",
     createListAnonymousHint: "bez rejestracji",
     creatingList: "Tworzę listę...",
     loadingList: "Ładuję listę...",
@@ -105,11 +102,6 @@ const translations = {
   en: {
     homeTagline:
       "A shared karaoke song list. Create a page, send the link to friends — no sign-up.",
-    marketingPointShare:
-      "Create a list and send the link — friends add songs right away.",
-    marketingPointQueue: "See who's singing now and who's up next.",
-    marketingPointNoApp:
-      "No app to install. An account is only if you want your lists on every device.",
     continueWithGoogle: "Continue with Google",
     continueWithoutAccount: "Continue",
     signIn: "Sign in",
@@ -132,6 +124,8 @@ const translations = {
     passwordHint:
       "A password is optional. If you set one, send it separately along with the link.",
     createList: "Create list",
+    createListAsSignedIn: "while signed in",
+    createListAsGuest: "without an account",
     createListAnonymousHint: "no sign-up needed",
     creatingList: "Creating list...",
     loadingList: "Loading list...",

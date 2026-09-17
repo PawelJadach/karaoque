@@ -3,7 +3,6 @@
 import { useUser } from "@clerk/react";
 import { Mic2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 import { GoogleSignInButton } from "../components/AuthControls";
 import { PageHeader } from "../components/PageHeader";
 import { isClerkEnabled } from "../lib/clerk";
@@ -29,26 +28,15 @@ export default function HomePage() {
         </p>
       </div>
 
-      <ul className="mb-8 space-y-3 text-sm leading-5 text-muted sm:text-base">
-        <li className="rounded-2xl border border-line bg-card/70 px-4 py-3">
-          {t.marketingPointShare}
-        </li>
-        <li className="rounded-2xl border border-line bg-card/70 px-4 py-3">
-          {t.marketingPointQueue}
-        </li>
-        <li className="rounded-2xl border border-line bg-card/70 px-4 py-3">
-          {t.marketingPointNoApp}
-        </li>
-      </ul>
-
       <CreateListCta />
     </main>
   );
 }
 
 function CreateListCta() {
+  const { t } = useI18n();
   if (!isClerkEnabled) {
-    return <CreateListLink />;
+    return <CreateListLink hint={t.createListAsGuest} variant="primary" />;
   }
   return <ClerkCreateListCta />;
 }
@@ -56,66 +44,78 @@ function CreateListCta() {
 function ClerkCreateListCta() {
   const { t } = useI18n();
   const { isLoaded, isSignedIn } = useUser();
-  const [choosing, setChoosing] = useState(false);
 
   if (!isLoaded) {
     return (
-      <button
-        type="button"
-        disabled
-        className="h-14 w-full rounded-2xl bg-pink text-base font-semibold text-white opacity-60"
-      >
-        {t.createList}
-      </button>
-    );
-  }
-
-  if (isSignedIn) {
-    return <CreateListLink />;
-  }
-
-  if (!choosing) {
-    return (
-      <button
-        type="button"
-        onClick={() => setChoosing(true)}
-        className="h-14 w-full rounded-2xl bg-pink text-base font-semibold text-white shadow-[0_10px_30px_rgba(255,77,141,0.35)] transition active:scale-[0.99]"
-      >
-        {t.createList}
-      </button>
+      <div className="space-y-3">
+        <CreateListButton disabled hint={t.createListAsSignedIn} variant="primary" />
+        <CreateListButton disabled hint={t.createListAsGuest} variant="secondary" />
+      </div>
     );
   }
 
   return (
-    <div className="rounded-3xl border border-line bg-card p-5">
-      <Link
-        href={CREATE_PATH}
-        className="flex min-h-14 w-full flex-col items-center justify-center rounded-2xl bg-pink px-4 py-2 text-white shadow-[0_10px_30px_rgba(255,77,141,0.35)] transition active:scale-[0.99]"
-      >
-        <span className="text-base font-semibold">{t.continueWithoutAccount}</span>
-        <span className="text-xs font-medium text-white/80">
-          {t.createListAnonymousHint}
-        </span>
-      </Link>
-      <div className="mt-4">
+    <div className="space-y-3">
+      {isSignedIn ? (
+        <CreateListLink hint={t.createListAsSignedIn} variant="primary" />
+      ) : (
         <GoogleSignInButton
-          label={t.signIn}
+          label={t.createList}
+          hint={t.createListAsSignedIn}
           forceRedirectUrl={CREATE_PATH}
+          variant="primary"
         />
-        <p className="mt-2 text-sm leading-5 text-muted">{t.signInBenefit}</p>
-      </div>
+      )}
+      <CreateListLink hint={t.createListAsGuest} variant="secondary" />
     </div>
   );
 }
 
-function CreateListLink() {
+function CreateListLink({
+  hint,
+  variant,
+}: {
+  hint: string;
+  variant: "primary" | "secondary";
+}) {
   const { t } = useI18n();
   return (
-    <Link
-      href={CREATE_PATH}
-      className="flex h-14 w-full items-center justify-center rounded-2xl bg-pink text-base font-semibold text-white shadow-[0_10px_30px_rgba(255,77,141,0.35)] transition active:scale-[0.99]"
-    >
-      {t.createList}
+    <Link href={CREATE_PATH} className={createListButtonClass(variant)}>
+      <span className="text-base font-semibold">{t.createList}</span>
+      <span className={createListHintClass(variant)}>{hint}</span>
     </Link>
   );
+}
+
+function CreateListButton({
+  disabled,
+  hint,
+  variant,
+}: {
+  disabled?: boolean;
+  hint: string;
+  variant: "primary" | "secondary";
+}) {
+  const { t } = useI18n();
+  return (
+    <button type="button" disabled={disabled} className={createListButtonClass(variant)}>
+      <span className="text-base font-semibold">{t.createList}</span>
+      <span className={createListHintClass(variant)}>{hint}</span>
+    </button>
+  );
+}
+
+function createListButtonClass(variant: "primary" | "secondary"): string {
+  const base =
+    "flex min-h-14 w-full flex-col items-center justify-center rounded-2xl px-4 py-2 transition enabled:active:scale-[0.99] disabled:opacity-60";
+  if (variant === "secondary") {
+    return `${base} border border-line bg-card text-foreground`;
+  }
+  return `${base} bg-pink text-white shadow-[0_10px_30px_rgba(255,77,141,0.35)]`;
+}
+
+function createListHintClass(variant: "primary" | "secondary"): string {
+  return variant === "secondary"
+    ? "text-xs font-medium text-muted"
+    : "text-xs font-medium text-white/80";
 }

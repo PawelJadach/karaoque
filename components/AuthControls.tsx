@@ -81,10 +81,14 @@ function ClerkBoardSignInPrompt() {
 
 export function GoogleSignInButton({
   label,
+  hint,
   forceRedirectUrl,
+  variant = "google",
 }: {
   label: string;
+  hint?: string;
   forceRedirectUrl?: string;
+  variant?: "google" | "primary";
 }) {
   return (
     <SignInButton
@@ -100,10 +104,19 @@ export function GoogleSignInButton({
     >
       <button
         type="button"
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-line bg-white px-4 text-sm font-semibold text-zinc-900"
+        className={
+          variant === "primary"
+            ? "flex min-h-14 w-full flex-col items-center justify-center rounded-2xl bg-pink px-4 py-2 text-white shadow-[0_10px_30px_rgba(255,77,141,0.35)] transition active:scale-[0.99]"
+            : "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-line bg-white px-4 text-sm font-semibold text-zinc-900"
+        }
       >
-        <GoogleMark />
-        {label}
+        {variant === "google" ? <GoogleMark /> : null}
+        <span className={variant === "primary" ? "text-base font-semibold" : undefined}>
+          {label}
+        </span>
+        {hint ? (
+          <span className="text-xs font-medium text-white/80">{hint}</span>
+        ) : null}
       </button>
     </SignInButton>
   );
