@@ -1,6 +1,6 @@
 # Karaoque
 
-Wspólna lista piosenek na grupowe karaoke. Bez kont — tworzysz listę, wysyłasz link, opcjonalnie hasło.
+Wspólna lista piosenek na grupowe karaoke. Tworzysz listę bez konta i wysyłasz link. Opcjonalnie logujesz się Google, żeby mieć swoje listy na każdym urządzeniu.
 
 ```bash
 pnpm install

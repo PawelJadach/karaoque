@@ -1,22 +1,33 @@
 "use client";
 
 import { api } from "../convex/_generated/api";
-import { useMutation } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Lock, Mic2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { AuthControls, GoogleSignInBanner } from "../components/AuthControls";
+import { HomeListLinks, type HomeListItem } from "../components/HomeListLinks";
 import { LanguageSwitch } from "../components/LanguageSwitch";
+import { isClerkEnabled } from "../lib/clerk";
+import { saveCreatedList } from "../lib/createdLists";
 import { translateError, useI18n } from "../lib/i18n";
 import { saveListPassword } from "../lib/listPassword";
+import { rememberRecentList, useRecentLists } from "../lib/recentLists";
 
 export default function HomePage() {
   const router = useRouter();
   const { t } = useI18n();
   const createList = useMutation(api.lists.create);
+  const recent = useRecentLists();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const recentItems = useMemo<HomeListItem[]>(
+    () => recent.map((item) => ({ slug: item.slug, name: item.name })),
+    [recent],
+  );
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,14 +41,20 @@ export default function HomePage() {
     setError(null);
     try {
       const trimmedPassword = password.trim();
-      const { slug } = await createList({
+      const created = await createList({
         name: trimmedName,
         password: trimmedPassword || undefined,
       });
+      saveCreatedList({
+        slug: created.slug,
+        name: trimmedName,
+        claimToken: created.claimToken,
+      });
+      rememberRecentList(created.slug, trimmedName);
       if (trimmedPassword) {
-        saveListPassword(slug, trimmedPassword);
+        saveListPassword(created.slug, trimmedPassword);
       }
-      router.push(`/l/${slug}`);
+      router.push(`/l/${created.slug}`);
     } catch (caught) {
       setError(translateError(caught, t, "CREATE_FAILED"));
       setBusy(false);
@@ -46,8 +63,9 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-10 pt-4 sm:pt-8">
-      <div className="mb-6 flex justify-end">
+      <div className="mb-6 flex items-center justify-end gap-2">
         <LanguageSwitch />
+        <AuthControls />
       </div>
       <div className="mb-8 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-pink/20 text-pink shadow-[0_0_40px_rgba(255,77,141,0.35)]">
@@ -60,6 +78,8 @@ export default function HomePage() {
           {t.homeTagline}
         </p>
       </div>
+
+      <AccountAndRecentLists recentItems={recentItems} />
 
       <form
         onSubmit={onSubmit}
@@ -110,6 +130,33 @@ export default function HomePage() {
           {busy ? t.creatingList : t.createList}
         </button>
       </form>
+
+      <GoogleSignInBanner />
     </main>
+  );
+}
+
+function AccountAndRecentLists({ recentItems }: { recentItems: HomeListItem[] }) {
+  const { t } = useI18n();
+  if (!isClerkEnabled) {
+    return <HomeListLinks title={t.recentLists} lists={recentItems} />;
+  }
+  return <SignedInLists recentItems={recentItems} />;
+}
+
+function SignedInLists({ recentItems }: { recentItems: HomeListItem[] }) {
+  const { t } = useI18n();
+  const { isAuthenticated } = useConvexAuth();
+  const myLists = useQuery(api.lists.listMine, isAuthenticated ? {} : "skip");
+  const mineSlugs = new Set((myLists ?? []).map((list) => list.slug));
+  const remainingRecent = recentItems.filter(
+    (item) => !mineSlugs.has(item.slug),
+  );
+
+  return (
+    <>
+      <HomeListLinks title={t.myLists} lists={myLists ?? []} />
+      <HomeListLinks title={t.recentLists} lists={remainingRecent} />
+    </>
   );
 }

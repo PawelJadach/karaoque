@@ -1,11 +1,19 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { generateSlug, getListBySlug, listPasswordOk } from "./lib/access";
+import {
+  generateClaimToken,
+  generateSlug,
+  getListBySlug,
+  listPasswordOk,
+} from "./lib/access";
+import { getCurrentUser, getCurrentUserOrNull } from "./lib/auth";
 import { ErrorCode } from "./lib/errors";
-import { hashPassword } from "./lib/password";
+import { hashPassword, verifyPassword } from "./lib/password";
 import { resolveSongStatus } from "./lib/songStatus";
 import {
   listPageValidator,
+  listSummaryValidator,
+  MAX_MINE_LISTS,
   MAX_NAME_LENGTH,
   MAX_PASSWORD_LENGTH,
   MAX_SONGS_PER_LIST,
@@ -56,6 +64,7 @@ export const create = mutation({
   },
   returns: v.object({
     slug: v.string(),
+    claimToken: v.string(),
   }),
   handler: async (ctx, args) => {
     const name = args.name.trim();
@@ -81,14 +90,92 @@ export const create = mutation({
     }
 
     const passwordFields = password ? await hashPassword(password) : undefined;
+    const claimToken = generateClaimToken();
+    const claimFields = await hashPassword(claimToken);
+    const owner = await getCurrentUserOrNull(ctx);
 
     await ctx.db.insert("lists", {
       slug,
       name,
       passwordHash: passwordFields?.hash,
       passwordSalt: passwordFields?.salt,
+      ownerId: owner?._id,
+      claimTokenHash: claimFields.hash,
+      claimTokenSalt: claimFields.salt,
     });
 
-    return { slug };
+    return { slug, claimToken };
+  },
+});
+
+export const listMine = query({
+  args: {},
+  returns: v.array(listSummaryValidator),
+  handler: async (ctx) => {
+    const user = await getCurrentUserOrNull(ctx);
+    if (!user) {
+      return [];
+    }
+
+    const lists = await ctx.db
+      .query("lists")
+      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .order("desc")
+      .take(MAX_MINE_LISTS);
+
+    return lists.map((list) => ({
+      slug: list.slug,
+      name: list.name,
+      hasPassword: Boolean(list.passwordHash),
+    }));
+  },
+});
+
+export const claimMany = mutation({
+  args: {
+    lists: v.array(
+      v.object({
+        slug: v.string(),
+        claimToken: v.string(),
+      }),
+    ),
+  },
+  returns: v.array(v.string()),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    const forget: string[] = [];
+
+    for (const item of args.lists.slice(0, MAX_MINE_LISTS)) {
+      const list = await getListBySlug(ctx, item.slug);
+      if (!list) {
+        forget.push(item.slug);
+        continue;
+      }
+      if (list.ownerId === user._id) {
+        forget.push(item.slug);
+        continue;
+      }
+      if (list.ownerId) {
+        forget.push(item.slug);
+        continue;
+      }
+      if (!list.claimTokenHash || !list.claimTokenSalt) {
+        forget.push(item.slug);
+        continue;
+      }
+      const allowed = await verifyPassword(
+        item.claimToken,
+        list.claimTokenSalt,
+        list.claimTokenHash,
+      );
+      if (!allowed) {
+        forget.push(item.slug);
+        continue;
+      }
+      await ctx.db.patch("lists", list._id, { ownerId: user._id });
+      forget.push(item.slug);
+    }
+
+    return forget;
   },
 });

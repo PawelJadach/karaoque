@@ -3,10 +3,11 @@
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Check, ClipboardPaste, Copy, Lock, Mic2, Pencil, Plus, SkipForward, Trash2, X } from "lucide-react";
+import { Check, ClipboardPaste, Copy, Home, Lock, Mic2, Pencil, Plus, SkipForward, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { type ClipboardEvent as ReactClipboardEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LanguageSwitch } from "../../../components/LanguageSwitch";
+import { AuthControls } from "../../../components/AuthControls";
 import {
   translateError,
   useI18n,
@@ -17,6 +18,10 @@ import {
   loadListPassword,
   saveListPassword,
 } from "../../../lib/listPassword";
+import {
+  rememberRecentList,
+  removeRecentList,
+} from "../../../lib/recentLists";
 import { MAX_TITLE_LENGTH, type SongStatus } from "../../../convex/lib/validators";
 
 type Song = {
@@ -104,6 +109,18 @@ export function KaraokeListPage({ slug }: { slug: string }) {
     api.lists.getPage,
     isClient ? { slug, password } : "skip",
   );
+
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    if (page.status === "ok" || page.status === "needs_password") {
+      rememberRecentList(slug, page.name);
+    }
+    if (page.status === "missing") {
+      removeRecentList(slug);
+    }
+  }, [page, slug]);
 
   const passwordError =
     emptyPasswordSubmit ||
@@ -210,6 +227,13 @@ export function KaraokeListPage({ slug }: { slug: string }) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-4">
       <nav className="mb-4 flex items-center gap-2 rounded-3xl border border-line bg-card p-2">
+        <Link
+          href="/"
+          aria-label={t.home}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-line"
+        >
+          <Home className="h-5 w-5" />
+        </Link>
         <button
           type="button"
           onClick={() => void copyLink()}
@@ -230,6 +254,7 @@ export function KaraokeListPage({ slug }: { slug: string }) {
         ) : null}
         <div className="min-w-0 flex-1" />
         <LanguageSwitch />
+        <AuthControls />
       </nav>
 
       {showPassword && password ? (
@@ -399,8 +424,9 @@ function PasswordModal({
 function ScreenShell({ children }: { children: React.ReactNode }) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 py-4">
-      <div className="mb-8 flex justify-end">
+      <div className="mb-8 flex items-center justify-end gap-2">
         <LanguageSwitch />
+        <AuthControls />
       </div>
       <div className="flex flex-1 items-center">{children}</div>
     </main>

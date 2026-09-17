@@ -9,6 +9,12 @@ const translations = {
   pl: {
     homeTagline:
       "Wspólna lista piosenek na karaoke. Stwórz stronę, wyślij link znajomym — bez rejestracji.",
+    continueWithGoogle: "Kontynuuj z Google",
+    googleShort: "Google",
+    myLists: "Twoje listy",
+    recentLists: "Ostatnio oglądane",
+    signInHint:
+      "Zaloguj się Google, żeby mieć swoje listy na każdym urządzeniu. Nadal możesz tworzyć listy bez konta.",
     name: "Nazwa",
     namePlaceholder: "np. Urodziny Asi",
     passwordOptional: "Hasło (opcjonalne)",
@@ -78,11 +84,18 @@ const translations = {
       SAVE_FAILED: "Nie udało się zapisać",
       UPDATE_FAILED: "Nie udało się zaktualizować",
       DELETE_FAILED: "Nie udało się usunąć",
+      NOT_AUTHENTICATED: "Zaloguj się, żeby zobaczyć swoje listy",
     },
   },
   en: {
     homeTagline:
       "A shared karaoke song list. Create a page, send the link to friends — no sign-up.",
+    continueWithGoogle: "Continue with Google",
+    googleShort: "Google",
+    myLists: "Your lists",
+    recentLists: "Recently viewed",
+    signInHint:
+      "Sign in with Google to keep your lists on every device. You can still create lists without an account.",
     name: "Name",
     namePlaceholder: "e.g. Asia's birthday",
     passwordOptional: "Password (optional)",
@@ -152,6 +165,7 @@ const translations = {
       SAVE_FAILED: "Couldn't save",
       UPDATE_FAILED: "Couldn't update",
       DELETE_FAILED: "Couldn't delete",
+      NOT_AUTHENTICATED: "Sign in to see your lists",
     },
   },
 } as const;

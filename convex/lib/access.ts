@@ -45,13 +45,21 @@ export async function requireListAccess(
 }
 
 export function generateSlug(): string {
+  return generateToken(10);
+}
+
+export function generateClaimToken(): string {
+  return generateToken(20);
+}
+
+function generateToken(length: number): string {
   const alphabet = "abcdefghijkmnopqrstuvwxyz23456789";
-  const bytes = new Uint8Array(10);
+  const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
-  let slug = "";
+  let token = "";
   for (const byte of bytes) {
     const char = alphabet[byte % alphabet.length];
-    slug += char ?? "x";
+    token += char ?? "x";
   }
-  return slug;
+  return token;
 }

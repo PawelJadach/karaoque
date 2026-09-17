@@ -32,7 +32,14 @@ export const listPageValidator = v.union(
   }),
 );
 
+export const listSummaryValidator = v.object({
+  slug: v.string(),
+  name: v.string(),
+  hasPassword: v.boolean(),
+});
+
 export const MAX_SONGS_PER_LIST = 200;
 export const MAX_NAME_LENGTH = 80;
 export const MAX_TITLE_LENGTH = 200;
 export const MAX_PASSWORD_LENGTH = 64;
+export const MAX_MINE_LISTS = 50;
