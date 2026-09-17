@@ -27,6 +27,7 @@ const translations = {
     passwordHint:
       "Hasło nie jest wymagane. Jeśli je ustawisz, wyślij je osobno razem z linkiem.",
     createList: "Stwórz listę",
+    createListAnonymousHint: "bez rejestracji",
     creatingList: "Tworzę listę...",
     loadingList: "Ładuję listę...",
     missingTitle: "Nie ma takiej listy",
@@ -113,6 +114,7 @@ const translations = {
     passwordHint:
       "A password is optional. If you set one, send it separately along with the link.",
     createList: "Create list",
+    createListAnonymousHint: "no sign-up needed",
     creatingList: "Creating list...",
     loadingList: "Loading list...",
     missingTitle: "This list doesn't exist",

@@ -5,6 +5,7 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Lock, Mic2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
+import { useUser } from "@clerk/react";
 import { AuthControls, GoogleSignInBanner } from "../components/AuthControls";
 import { HomeListLinks, type HomeListItem } from "../components/HomeListLinks";
 import { LanguageSwitch } from "../components/LanguageSwitch";
@@ -124,15 +125,51 @@ export default function HomePage() {
           </p>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="mt-5 h-14 w-full rounded-2xl bg-pink text-base font-semibold text-white shadow-[0_10px_30px_rgba(255,77,141,0.35)] transition enabled:active:scale-[0.99] disabled:opacity-60"
-        >
-          {busy ? t.creatingList : t.createList}
-        </button>
+        <CreateListButton busy={busy} />
       </form>
     </main>
+  );
+}
+
+function CreateListButton({ busy }: { busy: boolean }) {
+  const { t } = useI18n();
+  if (!isClerkEnabled) {
+    return <SubmitListButton busy={busy} showAnonymousHint t={t} />;
+  }
+  return <ClerkCreateListButton busy={busy} />;
+}
+
+function ClerkCreateListButton({ busy }: { busy: boolean }) {
+  const { t } = useI18n();
+  const { isLoaded, isSignedIn } = useUser();
+  const showAnonymousHint = !isLoaded || !isSignedIn;
+  return <SubmitListButton busy={busy} showAnonymousHint={showAnonymousHint} t={t} />;
+}
+
+function SubmitListButton({
+  busy,
+  showAnonymousHint,
+  t,
+}: {
+  busy: boolean;
+  showAnonymousHint: boolean;
+  t: ReturnType<typeof useI18n>["t"];
+}) {
+  return (
+    <button
+      type="submit"
+      disabled={busy}
+      className="mt-5 flex min-h-14 w-full flex-col items-center justify-center rounded-2xl bg-pink px-4 py-2 text-white shadow-[0_10px_30px_rgba(255,77,141,0.35)] transition enabled:active:scale-[0.99] disabled:opacity-60"
+    >
+      <span className="text-base font-semibold">
+        {busy ? t.creatingList : t.createList}
+      </span>
+      {!busy && showAnonymousHint ? (
+        <span className="text-xs font-medium text-white/80">
+          {t.createListAnonymousHint}
+        </span>
+      ) : null}
+    </button>
   );
 }
 
